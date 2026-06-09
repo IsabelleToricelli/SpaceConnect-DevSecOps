@@ -1,0 +1,44 @@
+name: SpaceConnect DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-audit:
+    name: Continuous Security & Secret Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v3
+
+    - name: Step 1 - Simulate Hardcoded Secret Check (SAST)
+      run: |
+        echo "===================================================="
+        echo " INICIANDO ANALISE ESTATICA DE SEGURANÇA (SAST)..."
+        echo "===================================================="
+        # Simula uma varredura procurando palavras perigosas como API_KEY ou SECRET no script.js
+        if grep -q "API_KEY" script.js; then
+          echo " ALERTA DE RISCO: Foi detectada uma potencial credencial exposta em script.js!"
+          echo "Vulnerabilidade mapeada: Gestao de Segredos Insegura."
+        else
+          echo " Nenhum segredo evidente foi encontrado no arquivo de script."
+        fi
+
+    - name: Step 2 - Verify Secure Vault Integration (GitHub Secrets)
+      run: |
+        echo "===================================================="
+        echo " VERIFICANDO CONEXAO COM COFRE DE SEGREDOS...    "
+        echo "===================================================="
+        # Verifica se o pipeline consegue ler o segredo que configuraremos no GitHub
+        if [ -z "${{ secrets.SPACECONNECT_API_KEY }}" ]; then
+          echo " FALHA: Chave de producao SPACECONNECT_API_KEY nao encontrada no GitHub Secrets!"
+          echo "O Deploy foi bloqueado por politicas de conformidade do pipeline DevSecOps."
+          exit 1
+        else
+          echo " SUCESSO: Conexao estabelecida de forma segura com o GitHub Secrets."
+          echo "Pipeline autorizado a seguir para o ambiente de Homologacao."
+        fi
